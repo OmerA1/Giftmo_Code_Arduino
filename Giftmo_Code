@@ -1,0 +1,168 @@
+//Giftmo Code---------------
+//Group: Hayden, Gabriele, Kyle & Omer
+//Components Used: Stepper Motor (Standard), Servo Motor (Standard), LEDs (Red, Orange, Yellow), Pressure sensor
+//Suedo Code: User presses buttons and holds for 3 seconds. 
+//In the 3 seconds, the LEDs glow like a traffic light.
+//When the Green LED glows, the Stepper Motor starts.
+//Stepper Motor needs to turn clockwise and counter clockwise in order to move the box through the tunnel.
+//Once Stepper motor has completed motion, servo motor rotates to move box towards the ramp. 
+//Servo motor returns to original position and Stepper motor turns on.
+//Stepper motor goes in reverse direction to reset to starting position.
+//-----------------------------
+
+//Declaring Variables and components (Servo and Stepper)
+
+#include <Stepper.h>
+#include <Servo.h>
+
+//Declaring Position variables for servo motor 
+Servo myservo;
+int pos = 0;  
+const int stepsPerRevolution = 200; 
+
+//Declaring Stepper motor pins
+Stepper myStepper(stepsPerRevolution, 8, 9, 10, 11);
+
+//Declaring Pressure sensor read variable and pin
+int fsrPin = 0;   
+int fsrReading; 
+
+//Declaring local variables: 
+//Variable that counts time
+int time_Count = 0;
+//LEDs variables
+int led_Yellow = 2;
+int led_Orange = 3;
+int led_Green = 4;
+
+//Void Setup with required intialization
+void setup() {
+
+  //Setting stepper motor speed
+  myStepper.setSpeed(120);
+  
+  //Initialize the serial port:
+  Serial.begin(9600); 
+
+  //Initializing LEDs output
+  pinMode(led_Orange, OUTPUT);
+  pinMode(led_Yellow, OUTPUT);
+  pinMode(led_Green, OUTPUT);
+
+  //Initializing Servo output
+  myservo.attach(5);
+}
+
+//Perform programmed functions
+void loop() {
+
+//Get force/pressure sensor reading
+fsrReading = analogRead(fsrPin);  
+//Print Fsr Reading:
+  Serial.print("Analog reading = ");
+  Serial.print(fsrReading);     // the raw analog reading
+ //Declare boolean statement to determine when to reset the stepper motor
+ boolean reverse_Statement = false;
+
+//-----------
+//if statement that determines when enough pressure, once enough pressure is applied for 3 seconds then the program begins.
+if (fsrReading > 10) {
+  //Print If Pressure is detected
+    Serial.println("Pressure Detected");
+  //Declare integer variable storing revolutions required to go through tunnel A
+    int Tunnel_A_Revolutions=0;
+
+//For loop that counts time until 3 seconds (This depends on how fast the arduino used updates the time variable-
+//We tested this and found that the UNO counts the time count variable in 3 seconds when around 300 permutations are done
+for (time_Count=0; time_Count <= 301; time_Count++){
+
+ //Declare integer variable storing revolutions required to go through tunnel B
+  int Tunnel_B_Revolutions=0;
+
+//Below if statements turn on and off specific LEDs to act like a traffic light for 3 seconds
+ if (time_Count>0){
+  digitalWrite(led_Orange, HIGH); 
+  }
+   
+  if (time_Count>200){
+  digitalWrite(led_Yellow, HIGH);
+  digitalWrite(led_Orange, LOW);
+ 
+  }
+  
+  if (time_Count>300){
+  digitalWrite(led_Green, HIGH);
+  //motor 
+  digitalWrite(led_Yellow, LOW); 
+
+
+ //While loop that updates the tunnel A revolution count until a specific number. The stepper motor turns in counterclockwise direction until the specified revolution count is reached. 
+ while(Tunnel_A_Revolutions<=32){
+   Tunnel_A_Revolutions++;
+  Serial.println("counterclockwise");
+  myStepper.step(-stepsPerRevolution);
+}
+
+  //While loop that updates the tunnel B revolution count until a specific number. The stepper motor turns in clockwise direction until the specified revolution count is reached. 
+  while(Tunnel_B_Revolutions<260 or Tunnel_A_Revolutions==32){
+   Serial.println(Tunnel_B_Revolutions);
+   Tunnel_B_Revolutions++;
+  Serial.println("clockwise");
+  myStepper.step(stepsPerRevolution);
+
+}
+
+//For loop that turns the servo motor once stepper motor actions are complete
+for (pos = 0; pos <= 75; pos += 1) { // goes from 0 degrees to 75 degrees
+    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
+  for (pos = 75; pos >= 0; pos -= 8) { // goes from 75 degrees to 0 degrees/ Changed position steps to increase speed
+    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
+
+}
+
+//Time count is complete now, and once all actions are complete. The boolean reverse statement variable is updated to true to triger reset function.
+  delay(10);
+  reverse_Statement=true;
+}
+//TIme count for loop ends (Last bracket)
+}
+
+//If statement with pressure sensor has ended
+//--------
+
+//+++++++
+//New If statement declared based on the condition if boolean reverse statement value is true. 
+if (reverse_Statement== true) {
+
+//The following code recalculates revolutions for the stepper motor and applies them in the opposite direction to get to the starting position.
+
+//Declaring variable that counts Tunnel A revolutions from the start
+int counting_Tunnel_A_Revolutions=0;
+//Declaring variable that counts Tunnel A revolutions from the start
+int counting_Tunnel_B_Revolutions=0;
+
+//while loop that updates tunnel A revolution count. This is used to start the counterclockwise rotation for the stepper motor for tunnel B
+while(counting_Tunnel_A_Revolutions<=32){
+   counting_Tunnel_A_Revolutions++;
+}
+
+//While loop that updates the tunnel B revolution count until a specific number. The stepper motor turns in counterclockwise direction to reset.
+  while(counting_Tunnel_B_Revolutions<260 or counting_Tunnel_A_Revolutions==32){
+   counting_Tunnel_B_Revolutions++;
+  Serial.println("counterclockwise");
+  myStepper.step(-stepsPerRevolution);
+}
+
+  delay(10);
+
+} 
+//If statement with reverse statement has ended
+//++++++++
+
+//Last bracket that ends void loop
+}
+
